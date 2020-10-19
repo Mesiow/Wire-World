@@ -33,6 +33,10 @@ private:
 	//set cell color based on state
 	void setCellColor(Cell &cell, State state);
 	void placeConductorCell(int x, int y);
+	//place conductor cells from startX to endX at current Y position clicked on
+	void placeConductorCellsFrom(int startX, int endX, int startY, int endY);
+	//sets cell to empty
+	void removeConductorCell(int x, int y);
 
 private:
 	//allows for 16 x 16 cells
@@ -40,4 +44,9 @@ private:
 	static constexpr int height = 45;
 	Cell *cells_;
 	int cellSize_ = 16; //16x16 cell size
+
+	int clickCounter = 0;
+	
+	int startX = 0, endX = 0; //start x and end x of a conductor line
+	int startY = 0, endY = 0; 
 };

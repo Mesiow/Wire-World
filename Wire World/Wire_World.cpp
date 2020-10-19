@@ -47,28 +47,46 @@ void Wire_World::render(sf::RenderTarget* target)
 
 void Wire_World::pollInput(sf::RenderWindow &window, sf::Event &ev)
 {
-	if (sf::Mouse::isButtonPressed(mouse::Left)) {
-		int posX = sf::Mouse::getPosition(window).x;
-		int posY = sf::Mouse::getPosition(window).y;
+	switch (ev.type) {
+		case sf::Event::MouseButtonReleased:{
+			sf::Mouse::Button button = ev.mouseButton.button;
 
-		//clamp mouse coords so they can't be negative
-		if (posX <= 0)
-			posX = 0;
-		if (posY <= 0)
-			posY = 0;
+			int posX = sf::Mouse::getPosition(window).x;
+			int posY = sf::Mouse::getPosition(window).y;
+			//clamp mouse coords so they can't be negative
+			if (posX <= 0)
+				posX = 0;
+			if (posY <= 0)
+				posY = 0;
 
-		if (posX >= 1280)
-			posX = 1280;
-		if (posY >= 720)
-			posY = 720;
-
-		std::cout << "X: " << posX << std::endl;
-		std::cout << "Y: " << posY << std::endl;
-
-		//place conductor cell
-		placeConductorCell(posX, posY);
-
-		//placeConductorCell(startPosX, endPosY);
+			if (posX >= 1280)
+				posX = 1280;
+			if (posY >= 720)
+				posY = 720;
+			
+			//Left mouse button released
+			if(button == sf::Mouse::Left){
+				//if click counter greater or equal to 2, call placeConductorCellsFrom
+				clickCounter++;
+				//place single conductor cell
+				if (clickCounter % 2 != 0) {
+					startX = posX;
+					startY = posY;
+					placeConductorCell(posX, posY);
+				} //every 2nd click
+				else if (clickCounter % 2 == 0) { //place multiple cells from start position x to end position x
+					clickCounter = 0;
+					endX = posX;
+					endY = posY;
+					placeConductorCellsFrom(startX, endX, startY, endY);
+				}
+			}
+			//Right mouse button released
+			else if (button == sf::Mouse::Right) {
+				removeConductorCell(posX, posY);
+			}
+		}
+		break;
 	}
 }
 
@@ -96,15 +114,64 @@ void Wire_World::placeConductorCell(int x, int y)
 	if (index >= width * height)
 		index = width * height;
 
-	//when setting the position convert back to window coords
-	cells_[index].posX = gridX * cellSize_;
-	cells_[index].posY = gridY * cellSize_;
-
-	int posX = cells_[index].posX;
-	int posY = cells_[index].posY;
-
 	cells_[index].state = State::CONDUCTOR;
-	cells_[index].rect.setPosition(sf::Vector2f(posX, posY));
+	setCellColor(cells_[index], cells_[index].state);
+}
 
+void Wire_World::placeConductorCellsFrom(int startX, int endX, int startY, int endY)
+{
+	int gridX = (startX / cellSize_);
+	int gridEndX = (endX / cellSize_);
+	int gridY = (startY / cellSize_);
+	int gridEndY = (endY / cellSize_);
+
+	auto placeCellInGrid = [&](int x, int y) {
+		int index = (y * width + x);
+		cells_[index].state = State::CONDUCTOR;
+		setCellColor(cells_[index], cells_[index].state);
+	};
+	
+	// Y
+	//add cells to height in positive direction y (down)
+	if (gridY < gridEndY) {
+		for (int y = gridY; y <= gridEndY; y++) {
+			placeCellInGrid(gridX, y);
+		}
+	}
+	//add cells to height in negative direction y (up)
+	else if (gridY > gridEndY) {
+		for (int y = gridY; y >= gridEndY; y--) {
+			placeCellInGrid(gridX, y);
+		}
+	}
+
+	// X
+	//add cells to width in positive direction x(right)
+	if (gridX < gridEndX) {
+		for (int x = gridX; x <= gridEndX; x++) {
+			placeCellInGrid(x, gridEndY);
+		}
+	}
+	//add cells to width in negative direction x (left)
+	else if (gridX > gridEndX) {
+		for (int x = gridX; x >= gridEndX; x--) {
+			placeCellInGrid(x, gridEndY);
+		}
+	}
+	
+}
+
+void Wire_World::removeConductorCell(int x, int y)
+{
+	//convert to grid space to index proper cell in array
+	int gridX = (x / cellSize_);
+	int gridY = (y / cellSize_);
+	int index = (gridY * width + gridX);
+
+	//clamp index
+	if (index >= width * height)
+		index = width * height;
+
+	cells_[index].state = State::EMPTY;
 	setCellColor(cells_[index], cells_[index].state);
 }

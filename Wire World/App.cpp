@@ -16,7 +16,6 @@ void App::run()
 	sf::Event ev;
 	while (window_->isOpen()) {
 		pollEvent(ev);
-		wire_world_.pollInput(*window_, ev);
 
 		clear(sf::Color(50, 50, 50, 255));
 
@@ -32,6 +31,7 @@ void App::pollEvent(sf::Event& ev)
 		switch (ev.type) {
 		case sf::Event::Closed: window_->close(); break;
 		}
+		wire_world_.pollInput(*window_, ev);
 	}
 }
 
