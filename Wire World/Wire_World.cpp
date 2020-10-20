@@ -9,27 +9,18 @@ Wire_World::Wire_World()
 
 	//init cells
 	for (int i = 0; i < width * height; i++) {
+		//int randState = rand() % (int)State::CONDUCTOR + 1;
 		cells_[i].state = State::EMPTY;
-		cells_[i].rect = sf::RectangleShape(sf::Vector2f(cellSize_, cellSize_));
 	}
 
-	////add cells to the grid in screen space
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			int index = (y * width + x);
-			//1. set position in the world
-			cells_[index].posX = x * cellSize_;
-			cells_[index].posY = y * cellSize_;
-
-			int posX = cells_[index].posX;
-			int posY = cells_[index].posY;
-
-			cells_[index].rect.setPosition(sf::Vector2f(posX, posY));
-
-			//2. set each cells color based on its state
-			setCellColor(cells_[index], cells_[index].state);
-		}
-	}
+	//////add cells to the grid in screen space
+	//for (int y = 0; y < height; y++) {
+	//	for (int x = 0; x < width; x++) {
+	//		int index = (y * width + x);
+	//		//set each cells color based on its state
+	//		setCellColor(cells_[index], cells_[index].state);
+	//	}
+	//}
 }
 
 Wire_World::~Wire_World()
@@ -37,100 +28,103 @@ Wire_World::~Wire_World()
 	
 }
 
-void Wire_World::render(sf::RenderTarget* target)
+void Wire_World::render(olc::PixelGameEngine *pge)
 {
 	if(started_)
 		runRules();
-	for (int i = 0; i < width * height; i++) {
-		target->draw(cells_[i].rect);
-	}
-}
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			int index = (y * width + x);
 
-void Wire_World::pollInput(sf::RenderWindow &window, sf::Event &ev)
-{
-	switch (ev.type) {
-		case sf::Event::KeyReleased: {
-			if (ev.key.code == key::Space)
-				started_ = !started_; //start simulation
+			switch (cells_[index].state) {
+			case State::EMPTY:
+				pge->FillRect(x * cellSize_, y * cellSize_,
+					cellSize_, cellSize_, olc::BLACK);
+				break;
 
-			if (ev.key.code == key::Q) { //Electron head selected
-				switchSelection_ = !switchSelection_;
-				if (switchSelection_)
-					selectedCell_ = State::HEAD;
-				else
-					selectedCell_ = State::CONDUCTOR;
-				std::cout << "Switched to " << (int)selectedCell_ << std::endl;
+			case State::HEAD:
+				pge->FillRect(x * cellSize_, y * cellSize_,
+					cellSize_, cellSize_, olc::BLUE);
+				break;
+
+			case State::TAIL:
+				pge->FillRect(x * cellSize_, y * cellSize_,
+					cellSize_, cellSize_, olc::RED);
+				break;
+
+			case State::CONDUCTOR:
+				pge->FillRect(x * cellSize_, y * cellSize_,
+					cellSize_, cellSize_, olc::YELLOW);
+				break;
 			}
 		}
-		break;
+	}
+}
 
-		case sf::Event::MouseButtonReleased:{
-			sf::Mouse::Button button = ev.mouseButton.button;
+void Wire_World::pollInput(olc::PixelGameEngine *pge)
+{
+	//Keyboard
+	if (pge->GetKey(key::SPACE).bReleased) {
+		started_ = !started_; //start simulation
+	}
+	else if (pge->GetKey(key::Q).bReleased) {
+		if (switchSelection_)
+			selectedCell_ = State::HEAD;
+		else
+			selectedCell_ = State::CONDUCTOR;
 
-			int posX = sf::Mouse::getPosition(window).x;
-			int posY = sf::Mouse::getPosition(window).y;
-			//clamp mouse coords so they can't be negative
-			if (posX <= 0)
-				posX = 0;
-			if (posY <= 0)
-				posY = 0;
+		switchSelection_ = !switchSelection_;
+	}
 
-			if (posX >= 1280)
-				posX = 1280;
-			if (posY >= 720)
-				posY = 720;
-			
-			//Left mouse button released
-			if(button == sf::Mouse::Left){
-				//Conductor cell selected
-				if (selectedCell_ == State::CONDUCTOR) {
-					//if click counter greater or equal to 2, call placeConductorCellsFrom
-					clickCounter++;
-					//place single conductor cell
-					if (clickCounter % 2 != 0) {
-						startX = posX;
-						startY = posY;
-						placeCell(posX, posY);
-					} //every 2nd click
-					else if (clickCounter % 2 == 0) { //place multiple cells from start position x to end position x
-						clickCounter = 0;
-						endX = posX;
-						endY = posY;
-						placeConductorCellsFrom(startX, endX, startY, endY);
-					}
-				}
-				else if (selectedCell_ == State::HEAD) {
-					placeCell(posX, posY);
-				}
-			}
-			//Right mouse button released
-			else if (button == sf::Mouse::Right) {
-				if (selectedCell_ == State::CONDUCTOR) {
-					removeCell(posX, posY);
-				}
+	//Mouse Coords
+	int posX = pge->GetMousePos().x;
+	int posY = pge->GetMousePos().y;
+	//clamp mouse coords so they can't be negative
+	if (posX <= 0)
+		posX = 0;
+	if (posY <= 0)
+		posY = 0;
+
+	if (posX >= 1280)
+		posX = 1280;
+	if (posY >= 720)
+		posY = 720;
+
+	//Mouse
+	//left mouse
+	if (pge->GetMouse(0).bReleased) {
+		//Conductor cell selected
+		if (selectedCell_ == State::CONDUCTOR) {
+			//if click counter greater or equal to 2, call placeConductorCellsFrom
+			clickCounter++;
+			//place single conductor cell
+			if (clickCounter % 2 != 0) {
+				startX = posX;
+				startY = posY;
+				placeCell(posX, posY);
+			} //every 2nd click
+			else if (clickCounter % 2 == 0) { //place multiple cells from start position x to end position x
+				clickCounter = 0;
+				endX = posX;
+				endY = posY;
+				placeConductorCellsFrom(startX, endX, startY, endY);
 			}
 		}
-		break;
+		else if (selectedCell_ == State::HEAD) {
+			placeCell(posX, posY);
+		}
+	}
+	else if (pge->GetMouse(1).bReleased) {
+			removeCell(posX, posY);
 	}
 }
 
-void Wire_World::setCellColor(Cell& cell, State state)
-{
-	sf::Color color;
-	switch (state) {
-		case State::EMPTY: color = sf::Color::Black; break;
-		case State::HEAD: color = sf::Color::Blue; break;
-		case State::TAIL: color = sf::Color::Red; break;
-		case State::CONDUCTOR: color = sf::Color::Yellow; break;
-	}
-	cell.rect.setFillColor(color);
-}
 
 void Wire_World::setCellColor(int x, int y, State state)
 {
-	int index = (y * width + x);
-	cells_[index].state = state;
-	setCellColor(cells_[index], cells_[index].state);
+	//int index = (y * width + x);
+	//cells_[index].state = state;
+	//setCellColor(cells_[index], cells_[index].state);
 }
 
 void Wire_World::placeCell(int x, int y)
@@ -149,8 +143,6 @@ void Wire_World::placeCell(int x, int y)
 		cells_[index].state = State::CONDUCTOR;
 	else if (selectedCell_ == State::HEAD)
 		cells_[index].state = State::HEAD;
-
-	setCellColor(cells_[index], cells_[index].state);
 }
 
 void Wire_World::placeConductorCellsFrom(int startX, int endX, int startY, int endY)
@@ -163,7 +155,6 @@ void Wire_World::placeConductorCellsFrom(int startX, int endX, int startY, int e
 	auto placeCellInGrid = [&](int x, int y) {
 		int index = (y * width + x);
 		cells_[index].state = State::CONDUCTOR;
-		setCellColor(cells_[index], cells_[index].state);
 	};
 	
 	// Y
@@ -208,7 +199,6 @@ void Wire_World::removeCell(int x, int y)
 		index = width * height;
 
 	cells_[index].state = State::EMPTY;
-	setCellColor(cells_[index], cells_[index].state);
 }
 
 void Wire_World::setCell(int x, int y, Cell cell)
@@ -216,28 +206,11 @@ void Wire_World::setCell(int x, int y, Cell cell)
 	int index = (y * width + x);
 	Cell& c = cells_[index];
 	c = cell;
-	/*c.posX = (x * cellSize_);
-	c.posY = (y * cellSize_);
-	c.rect.setPosition(sf::Vector2f(c.posX, c.posY));*/
-	setCellColor(x, y, c.state);
-}
-
-Position Wire_World::getGridPosition(int x, int y)
-{
-	Position p;
-	int gridX = (x / cellSize_);
-	int gridY = (y / cellSize_);
-
-	p.x = gridX;
-	p.y = gridY;
-	return p;
 }
 
 void Wire_World::runRules()
 {
-	std::vector<Cell> newCells(width * height, Cell(State::EMPTY,
-		sf::RectangleShape(sf::Vector2f(cellSize_, cellSize_)), 0, 0));
-	//std::vector<Cell> newCells(width * height);
+	std::vector<Cell> newCells = cells_;
 
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
@@ -280,12 +253,6 @@ void Wire_World::runRules()
 						State neighbor = getNeighbor(nx, ny);
 						if (neighbor == State::HEAD)
 							headCount++;
-
-						/*int index = (ny * width + nx);
-						auto cell = cells_[index];
-
-						if (cell.state == State::HEAD)
-							headCount++;*/
 					}
 				}
 				if (headCount > 0) { std::cout << "head count: " << headCount << std::endl; }
@@ -294,19 +261,16 @@ void Wire_World::runRules()
 				}
 				else
 					newCell.state = State::CONDUCTOR;
+
 				break;
 			}
 
 			default:
 				break;
 			}
-			//setCell(x, y, newCell);
-			setCellColor(x, y, newCell.state);
 		}
 	}
-	for (auto& cell : newCells) {
-		setCell(cell.posX, cell.posY, cell);
-	}
+	cells_ = newCells;
 }
 
 State Wire_World::getNeighbor(int x, int y)

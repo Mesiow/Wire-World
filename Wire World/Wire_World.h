@@ -1,9 +1,9 @@
 #pragma once
-#include <SFML/Graphics.hpp>
 #include <cstdlib>
 #include <random>
 #include <array>
 #include <vector>
+#include "olcPixelGameEngine.h"
 
 enum class State {
 	EMPTY = 0, //Black
@@ -14,15 +14,8 @@ enum class State {
 
 struct Cell {
 	Cell(){}
-	Cell(State st, sf::RectangleShape rect, int x, int y){
-		this->state = st;
-		this->rect = rect;
-		this->posX = x;
-		this->posY = y;
-		this->rect.setPosition(x, y);
-	}
+	Cell(State s) { this->state = s; }
 	State state;
-	sf::RectangleShape rect;
 	int posX, posY; //x and y position in screen
 };
 
@@ -31,20 +24,18 @@ struct Position {
 };
 
 //input typedefs
-using key = sf::Keyboard::Key;
-using mouse = sf::Mouse::Button;
+using key = olc::Key;
+//using mouse = sf::Mouse::Button;
 
 class Wire_World {
 public:
 	Wire_World();
 	~Wire_World();
-	void render(sf::RenderTarget *target);
-	void pollInput(sf::RenderWindow &window, sf::Event &ev);
+	void render(olc::PixelGameEngine *pge);
+	void pollInput(olc::PixelGameEngine* pge);
 
 
 private:
-	//set cell color based on state
-	void setCellColor(Cell &cell, State state);
 	//set cell color based on position and state
 	void setCellColor(int x, int y, State state);
 	void placeCell(int x, int y);
@@ -53,7 +44,6 @@ private:
 	//sets cell to empty
 	void removeCell(int x, int y);
 	void setCell(int x, int y, Cell cell);
-	Position getGridPosition(int x, int y);
 
 	//rule functions
 	void runRules();
@@ -64,8 +54,8 @@ private:
 private:
 	//allows for 10 x 10 cells
 	//divide screen width by 10(cell size) to get grid width(128) and height(72)
-	static constexpr int width = 128;
-	static constexpr int height = 72;
+	static constexpr int width = 256;
+	static constexpr int height = 240;
 	std::vector<Cell> cells_;
 	int cellSize_ = 10; //10x10 cell size
 

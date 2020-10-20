@@ -1,8 +1,9 @@
 #include "App.h"
 
 int main() {
-	App app("Wire World", 1280, 720);
-	app.run();
+	App app;
+	if (app.Construct(1280, 720, 1, 1))
+		app.Start();
 
 	return 0;
 }
