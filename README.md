@@ -21,8 +21,7 @@ as part of his program Phantom Fish Tank. Wireworld is particularly suited to si
  * conductor → electron head if exactly one or two of the neighbouring cells are electron heads, otherwise remains conductor.
 
 # Examples
+## Random Looping Circuit
+![](show.gif)
 ## XOR Gate
 ![](xor.gif)
-
-## Random Circuit
-![](random.gif)
