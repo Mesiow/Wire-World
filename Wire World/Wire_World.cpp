@@ -3,24 +3,14 @@
 
 Wire_World::Wire_World()
 {
-	//cells_ = new Cell[width * height];
 	cells_.resize(width * height);
 	srand(time(0));
 
 	//init cells
-	for (int i = 0; i < width * height; i++) {
-		//int randState = rand() % (int)State::CONDUCTOR + 1;
+	for (int i = 0; i < width * height; i++)
 		cells_[i].state = State::EMPTY;
-	}
 
-	//////add cells to the grid in screen space
-	//for (int y = 0; y < height; y++) {
-	//	for (int x = 0; x < width; x++) {
-	//		int index = (y * width + x);
-	//		//set each cells color based on its state
-	//		setCellColor(cells_[index], cells_[index].state);
-	//	}
-	//}
+	currentMode_ = Mode::SINGLE;
 }
 
 Wire_World::~Wire_World()
@@ -30,8 +20,13 @@ Wire_World::~Wire_World()
 
 void Wire_World::render(olc::PixelGameEngine *pge)
 {
-	if(started_)
+	//Render Text Info
+	pge->DrawStringDecal(olc::vf2d(10, 10), "Mode: " + getModeAsString(currentMode_),
+		olc::WHITE, olc::vf2d(3, 3));
+
+	if(currentMode_ == Mode::RUNNING)
 		runRules();
+
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
 			int index = (y * width + x);
@@ -65,15 +60,13 @@ void Wire_World::pollInput(olc::PixelGameEngine *pge)
 {
 	//Keyboard
 	if (pge->GetKey(key::SPACE).bReleased) {
-		started_ = !started_; //start simulation
+		simRunning_ = !simRunning_;
+		if (simRunning_) currentMode_ = Mode::RUNNING;
+		else currentMode_ = Mode::PAUSED;
 	}
-	else if (pge->GetKey(key::Q).bReleased) {
-		if (switchSelection_)
-			selectedCell_ = State::HEAD;
-		else
-			selectedCell_ = State::CONDUCTOR;
-
-		switchSelection_ = !switchSelection_;
+	else if (pge->GetKey(key::Q).bReleased) { //Toggle through modes
+		int nextMode = ((int)currentMode_ + 1) % (int)Mode::RUNNING;
+		currentMode_ = (Mode)nextMode; //set to next mode
 	}
 
 	//Mouse Coords
@@ -93,24 +86,18 @@ void Wire_World::pollInput(olc::PixelGameEngine *pge)
 	//Mouse
 	//left mouse
 	if (pge->GetMouse(0).bReleased) {
-		//Conductor cell selected
-		if (selectedCell_ == State::CONDUCTOR) {
-			//if click counter greater or equal to 2, call placeConductorCellsFrom
-			clickCounter++;
-			//place single conductor cell
-			if (clickCounter % 2 != 0) {
-				startX = posX;
-				startY = posY;
-				placeCell(posX, posY);
-			} //every 2nd click
-			else if (clickCounter % 2 == 0) { //place multiple cells from start position x to end position x
-				clickCounter = 0;
-				endX = posX;
-				endY = posY;
-				placeConductorCellsFrom(startX, endX, startY, endY);
-			}
+		//place single conductor cell
+		if (currentMode_ == Mode::SINGLE) {
+			startX = posX;
+			startY = posY;
+			placeCell(posX, posY);
 		}
-		else if (selectedCell_ == State::HEAD) {
+		else if (currentMode_ == Mode::LINE) { //place multiple cells from start position x to end position x
+			endX = posX;
+			endY = posY;
+			placeConductorCellsFrom(startX, endX, startY, endY);
+		}
+		else if (currentMode_ == Mode::HEAD) {
 			placeCell(posX, posY);
 		}
 	}
@@ -138,11 +125,12 @@ void Wire_World::placeCell(int x, int y)
 	if (index >= width * height)
 		index = width * height;
 
+	auto& cell = cells_[index];
 	//place correct cell
-	if (selectedCell_ == State::CONDUCTOR)
-		cells_[index].state = State::CONDUCTOR;
-	else if (selectedCell_ == State::HEAD)
-		cells_[index].state = State::HEAD;
+	switch (currentMode_) {
+		case Mode::SINGLE: cell.state = State::CONDUCTOR; break;
+		case Mode::HEAD: cell.state = State::HEAD; break;
+	}
 }
 
 void Wire_World::placeConductorCellsFrom(int startX, int endX, int startY, int endY)
@@ -208,6 +196,18 @@ void Wire_World::setCell(int x, int y, Cell cell)
 	c = cell;
 }
 
+std::string Wire_World::getModeAsString(Mode mode)
+{
+	switch (mode) {
+		case Mode::LINE: return std::string("Line");
+		case Mode::SINGLE: return std::string("Single");
+		case Mode::HEAD: return std::string("Electron Head");
+		case Mode::RUNNING: return std::string("Running");
+		case Mode::PAUSED: return std::string("Paused");
+	}
+	return "";
+}
+
 void Wire_World::runRules()
 {
 	std::vector<Cell> newCells = cells_;
@@ -255,7 +255,6 @@ void Wire_World::runRules()
 							headCount++;
 					}
 				}
-				if (headCount > 0) { std::cout << "head count: " << headCount << std::endl; }
 				if (headCount == 1 || headCount == 2) { //turn into electron head
 					newCell.state = State::HEAD;
 				}

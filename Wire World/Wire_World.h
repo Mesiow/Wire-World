@@ -5,6 +5,14 @@
 #include <vector>
 #include "olcPixelGameEngine.h"
 
+enum class Mode {
+	LINE = 0, //placing line of conductor cells
+	SINGLE, //Placing single conductor cell
+	HEAD, //Placing electron head
+	RUNNING, //Sim is running, can't place cells during this mode
+	PAUSED
+};
+
 enum class State {
 	EMPTY = 0, //Black
 	HEAD, //blue
@@ -13,8 +21,6 @@ enum class State {
 };
 
 struct Cell {
-	Cell(){}
-	Cell(State s) { this->state = s; }
 	State state;
 	int posX, posY; //x and y position in screen
 };
@@ -45,6 +51,8 @@ private:
 	void removeCell(int x, int y);
 	void setCell(int x, int y, Cell cell);
 
+	std::string getModeAsString(Mode mode);
+
 	//rule functions
 	void runRules();
 	//get state of a neighbor
@@ -58,15 +66,11 @@ private:
 	static constexpr int height = 240;
 	std::vector<Cell> cells_;
 	int cellSize_ = 10; //10x10 cell size
-
-	int clickCounter = 0;
 	
 	//Conductor line
 	int startX = 0, endX = 0; //start x and end x of a conductor line
 	int startY = 0, endY = 0;
 
-	//once we place an electron head on a conductor, start the simulation (run the rules)
-	bool started_ = false;
-	bool switchSelection_ = true;
-	State selectedCell_ = State::CONDUCTOR; //current cell to place down
+	bool simRunning_ = false;
+	Mode currentMode_; //current mode of the simulation
 };
