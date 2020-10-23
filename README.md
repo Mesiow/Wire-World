@@ -1,3 +1,6 @@
+# Built using olcPixelGameEngine framework
+https://github.com/OneLoneCoder/olcPixelGameEngine
+
 # Wire World
 **Wireworld is a cellular automaton first proposed by Brian Silverman in 1987, 
 as part of his program Phantom Fish Tank. Wireworld is particularly suited to simulating transistors**
@@ -16,3 +19,10 @@ as part of his program Phantom Fish Tank. Wireworld is particularly suited to si
  * electron head → electron tail,
  * electron tail → conductor,
  * conductor → electron head if exactly one or two of the neighbouring cells are electron heads, otherwise remains conductor.
+
+# Examples
+## XOR Gate
+![](xor.gif)
+
+## Random Circuit
+![](random.gif)
